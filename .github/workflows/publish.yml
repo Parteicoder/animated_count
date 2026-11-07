@@ -1,0 +1,26 @@
+name: Publish to pub.dev
+
+# Publishes when a version tag like v0.1.1 is pushed.
+# One-time setup on pub.dev: package Admin -> Automated publishing -> enable GitHub Actions,
+# repository Parteicoder/animated_count, tag pattern v{{version}}.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token for pub.dev, no stored secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1 # sets up the pub.dev OIDC credentials
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter pub publish --force
