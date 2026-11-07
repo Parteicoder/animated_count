@@ -13,6 +13,8 @@ AnimatedCount(
 )
 ```
 
+A runnable demo lives in [`example/`](example).
+
 ## Behavior
 
 - The first frame shows `value` immediately. Only later changes animate (up **and** down).

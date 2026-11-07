@@ -1,3 +1,8 @@
+## 0.1.2
+
+- Document the whole public API.
+- Add an example app.
+
 ## 0.1.1
 
 - Releases are now published automatically from GitHub Actions. No code changes.

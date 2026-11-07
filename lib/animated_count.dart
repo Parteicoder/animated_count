@@ -1,1 +1,11 @@
+/// A tiny Flutter widget that counts an integer up or down to its new value.
+///
+/// [AnimatedCount] renders one plain `Text`, so font scaling, line wrapping and
+/// screen readers behave like for any other text. See the README for details.
+///
+/// ```dart
+/// AnimatedCount(value: 42, suffix: ' items')
+/// ```
+library;
+
 export 'src/animated_count.dart';
