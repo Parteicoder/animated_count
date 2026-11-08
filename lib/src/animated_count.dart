@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 ///
 /// The first frame shows [value] immediately. Only a later change is animated,
 /// or, with [countFromZero], the very first appearance (count-up from 0).
+/// With [initialValue] the first appearance counts from the number you showed
+/// last time, so a screen that is opened again does not start over from 0.
 ///
 /// It renders a single plain [Text] (`prefix + number + suffix`), so font
 /// scaling, line wrapping and baseline alignment behave as for any other text.
@@ -22,7 +24,8 @@ class AnimatedCount extends StatelessWidget {
   ///
   /// [value] is the number to show. [prefix] and [suffix] are text around it that
   /// belongs to the same [Text]. Set [countFromZero] to also animate the first
-  /// appearance. [format] turns every shown number into text, for example to add
+  /// appearance, or [initialValue] to start that first count from a number you
+  /// remembered. [format] turns every shown number into text, for example to add
   /// thousands separators.
   const AnimatedCount({
     required this.value,
@@ -31,6 +34,7 @@ class AnimatedCount extends StatelessWidget {
     this.style,
     this.textAlign,
     this.countFromZero = false,
+    this.initialValue,
     this.duration = const Duration(milliseconds: 600),
     this.curve = Curves.easeOutCubic,
     this.format = _plain,
@@ -56,8 +60,16 @@ class AnimatedCount extends StatelessWidget {
   /// Count up from 0 when the widget first appears.
   ///
   /// When false, the first frame shows [value] right away and only later
-  /// changes are animated.
+  /// changes are animated. Ignored when [initialValue] is set.
   final bool countFromZero;
+
+  /// The number the very first count starts from, usually the number this
+  /// widget showed last time (kept by you, for example in `shared_preferences`).
+  ///
+  /// If it equals [value], nothing is animated. If it is null, the first count
+  /// follows [countFromZero]. Only the first appearance uses it; later changes
+  /// of [value] always count from the number currently shown.
+  final int? initialValue;
 
   /// How long one count takes. Ignored (jumps instantly) if the system
   /// disables animations.
@@ -80,7 +92,7 @@ class AnimatedCount extends StatelessWidget {
       label: text,
       excludeSemantics: true,
       child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: countFromZero ? 0 : value.toDouble(), end: value.toDouble()),
+        tween: Tween<double>(begin: (initialValue ?? (countFromZero ? 0 : value)).toDouble(), end: value.toDouble()),
         duration: animate ? duration : Duration.zero,
         curve: curve,
         builder: (context, current, _) =>

@@ -31,6 +31,7 @@ A runnable demo lives in [`example/`](example).
 | `prefix` / `suffix` | `''` | Text before / after the number, part of the same `Text`. |
 | `style`, `textAlign` | `null` | Passed to the `Text`. |
 | `countFromZero` | `false` | Count up from 0 on first appearance. |
+| `initialValue` | `null` | Start the first count from this number (wins over `countFromZero`). |
 | `duration` | 600 ms | Length of the animation. |
 | `curve` | `Curves.easeOutCubic` | Easing. |
 | `format` | `int.toString` | Formats every shown number, e.g. to add thousands separators. |
@@ -43,6 +44,25 @@ AnimatedCount(
   format: (n) => NumberFormat.decimalPattern('en_US').format(n), // package:intl
 )
 ```
+
+## Remember the last number
+
+By default the first frame shows `value` right away. If you want the number to count
+only when it actually changed since the last visit, keep the last shown number yourself
+and pass it as `initialValue`:
+
+```dart
+final last = prefs.getInt('posterCount'); // null on the very first visit
+prefs.setInt('posterCount', posterCount); // remember it for next time
+
+AnimatedCount(
+  value: posterCount,
+  initialValue: last, // null: no animation (or 0 with countFromZero)
+)
+```
+
+If `initialValue` equals `value`, nothing is animated. It is only used on the first
+appearance; later changes of `value` count from the number currently shown.
 
 ## Why not a rolling-digits widget?
 

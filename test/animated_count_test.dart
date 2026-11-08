@@ -40,6 +40,35 @@ void main() {
     expect(find.text('30'), findsOneWidget);
   });
 
+  testWidgets('initialValue starts the first count from the remembered number', (tester) async {
+    await tester.pumpWidget(_app(const AnimatedCount(value: 30, initialValue: 20)));
+    expect(find.text('20'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('20'), findsNothing);
+    expect(find.text('30'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('30'), findsOneWidget);
+  });
+
+  testWidgets('initialValue also counts down from a higher remembered number', (tester) async {
+    await tester.pumpWidget(_app(const AnimatedCount(value: 5, initialValue: 50)));
+    expect(find.text('50'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('5'), findsOneWidget);
+  });
+
+  testWidgets('initialValue equal to value does not animate', (tester) async {
+    await tester.pumpWidget(_app(const AnimatedCount(value: 42, initialValue: 42)));
+    expect(find.text('42'), findsOneWidget);
+    expect(tester.hasRunningAnimations, isFalse);
+  });
+
+  testWidgets('initialValue wins over countFromZero', (tester) async {
+    await tester.pumpWidget(_app(const AnimatedCount(value: 30, initialValue: 25, countFromZero: true)));
+    expect(find.text('25'), findsOneWidget);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('format is applied to the shown number', (tester) async {
     await tester.pumpWidget(_app(const AnimatedCount(value: 1234567, format: _dots)));
     expect(find.text('1.234.567'), findsOneWidget);
