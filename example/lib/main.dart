@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 void main() => runApp(const ExampleApp());
 
-/// Shows an [AnimatedCount] that counts to a new number on every tap.
+/// Shows a [RollingCount] and an [AnimatedCount] side by side that go to a new number on every tap.
 class ExampleApp extends StatelessWidget {
   /// Creates the example app.
   const ExampleApp({super.key});
@@ -29,11 +29,23 @@ class _HomeState extends State<_Home> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('animated_count')),
     body: Center(
-      child: AnimatedCount(
-        value: _posters,
-        suffix: _posters == 1 ? ' poster' : ' posters',
-        countFromZero: true,
-        style: Theme.of(context).textTheme.displaySmall,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 24,
+        children: [
+          RollingCount(
+            value: _posters,
+            suffix: _posters == 1 ? ' poster' : ' posters',
+            countFromZero: true,
+            style: Theme.of(context).textTheme.displaySmall,
+          ),
+          AnimatedCount(
+            value: _posters,
+            suffix: _posters == 1 ? ' poster' : ' posters',
+            countFromZero: true,
+            style: Theme.of(context).textTheme.displaySmall,
+          ),
+        ],
       ),
     ),
     floatingActionButton: Row(

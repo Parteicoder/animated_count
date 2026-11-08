@@ -2,7 +2,7 @@
 
 ![Counting up and down on button taps](https://raw.githubusercontent.com/Parteicoder/animated_count/main/doc/demo.gif)
 
-Tiny Flutter widgets that count a number up or down to its new value: `AnimatedCount` for integers, `AnimatedDecimal` for decimals and currencies.
+Tiny Flutter widgets that count a number up or down to its new value: `AnimatedCount` for integers, `AnimatedDecimal` for decimals and currencies, and `RollingCount` for odometer-style rolling digits (shown above).
 
 It renders **one plain `Text`**, so font scaling, line wrapping, baseline alignment and
 screen readers behave like for any other text. No custom painting, no extra dependencies.
@@ -87,11 +87,30 @@ AnimatedCount(
 If `initialValue` equals `value`, nothing is animated. It is only used on the first
 appearance; later changes of `value` count from the number currently shown.
 
-## Why not a rolling-digits widget?
+## Rolling digits
 
-Rolling digits look nice, but they need custom layout and painting. That makes it hard to
-get text scaling, wrapping and accessibility right. A count-up is a few lines of
-`TweenAnimationBuilder` and keeps all of that for free.
+`RollingCount` shows every digit as its own wheel, like an odometer. Wheels roll through the
+digits in between (up when the number grows, down when it shrinks), start one after another
+from the right and settle with a small bounce. New digits slide in, vanished ones slide out.
+
+```dart
+RollingCount(
+  value: posterCount,
+  suffix: posterCount == 1 ? ' poster' : ' posters',
+  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
+)
+```
+
+It takes the same parameters as `AnimatedCount` (`prefix`, `suffix`, `style`, `format`,
+`duration`, `curve`, `countFromZero`, `initialValue`); the defaults are 700 ms and
+`Curves.easeOutBack`. Separators from `format` stay plain text, screen readers read the final
+text, and the number jumps if the system disables animations.
+
+## Which one?
+
+Rolling digits need a custom layout (one fixed-width cell per digit), so `RollingCount` is not a
+single `Text`: it does not wrap and ignores `textAlign`. Prefer `AnimatedCount` or
+`AnimatedDecimal` when the number sits inside running text, or when you need decimals.
 
 ## License
 

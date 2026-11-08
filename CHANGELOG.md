@@ -1,3 +1,8 @@
+## 0.3.0
+
+- Add `RollingCount`: odometer-style digit wheels that roll through the digits in between, with a staggered start and a small bounce. `AnimatedCount` and `AnimatedDecimal` are unchanged.
+- The README demo GIF shows the rolling digits.
+
 ## 0.2.1
 
 - Add a demo GIF to the README and the pub.dev screenshots tab.

@@ -9,7 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _frameMs = 50;
+const _frameMs = 33;
 late void Function(int value, int pressed) _set;
 
 class _Scene extends StatefulWidget {
@@ -48,7 +48,7 @@ class _SceneState extends State<_Scene> {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AnimatedCount(
+        RollingCount(
           value: value,
           suffix: value == 1 ? ' poster' : ' posters',
           countFromZero: true,
