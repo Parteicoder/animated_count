@@ -1,6 +1,7 @@
 ## 0.3.0
 
 - Add `RollingCount`: odometer-style digit wheels that roll through the digits in between, with a staggered start and a small bounce. `AnimatedCount` and `AnimatedDecimal` are unchanged.
+- `roll` picks the look: `RollStyle.odometer` (default), `drum` (3D cylinder) or `slot` (extra spin, stops from the left). `direction`, `stagger`, `upColor` and `downColor` fine-tune it.
 - The README demo GIF shows the rolling digits.
 
 ## 0.2.1

@@ -237,6 +237,55 @@ void rollingTests() {
       expect(find.text('5'), findsOneWidget);
     });
 
+
+    for (final roll in RollStyle.values) {
+      testWidgets('${roll.name} ends exactly on the new value', (tester) async {
+        await tester.pumpWidget(_app(RollingCount(value: 12, roll: roll)));
+        await tester.pumpWidget(_app(RollingCount(value: 1042, roll: roll)));
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(find.byType(Text), findsWidgets);
+        await tester.pumpAndSettle();
+        expect(find.bySemanticsLabel('1042'), findsOneWidget);
+        expect(find.byType(Text), findsNWidgets(4));
+        await tester.pumpWidget(_app(RollingCount(value: 7, roll: roll)));
+        await tester.pumpAndSettle();
+        expect(find.byType(Text), findsOneWidget);
+        expect(find.text('7'), findsOneWidget);
+      });
+    }
+
+    testWidgets('direction forces the way the wheel turns', (tester) async {
+      Future<void> run(RollDirection d) async {
+        await tester.pumpWidget(_app(RollingCount(value: 1, direction: d, curve: Curves.linear)));
+        await tester.pumpWidget(_app(RollingCount(value: 2, direction: d, curve: Curves.linear)));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+      }
+
+      await run(RollDirection.down); // 1 -> 2 down = 9 steps through 0, 9 ... 3
+      expect(find.text('6'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('2'), findsOneWidget);
+      await tester.pumpWidget(_app(const SizedBox()));
+      await run(RollDirection.up); // 1 -> 2 up = 1 step
+      expect(find.text('6'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('upColor and downColor tint the text while rolling and restore it', (tester) async {
+      const base = Color(0xFF000000);
+      Color? color() => tester.widget<Text>(find.byType(Text).first).style?.color;
+      await tester.pumpWidget(_app(const RollingCount(value: 5, style: TextStyle(color: base), upColor: Color(0xFF00FF00), downColor: Color(0xFFFF0000))));
+      await tester.pumpWidget(_app(const RollingCount(value: 6, style: TextStyle(color: base), upColor: Color(0xFF00FF00), downColor: Color(0xFFFF0000))));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(color(), isNot(base));
+      expect(color()!.g, greaterThan(color()!.r)); // green, not red
+      await tester.pumpAndSettle();
+      expect(color(), base);
+    });
+
     testWidgets('jumps instantly when animations are disabled', (tester) async {
       await tester.pumpWidget(_app(const RollingCount(value: 1), disableAnimations: true));
       await tester.pumpWidget(_app(const RollingCount(value: 9), disableAnimations: true));

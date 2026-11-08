@@ -1,14 +1,44 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
-/// Delay between two neighbouring digit wheels, the ones digit starts first.
-const _stagger = Duration(milliseconds: 40);
+/// How the digit wheels of a [RollingCount] move.
+enum RollStyle {
+  /// Flat odometer wheels that roll through the digits in between. The wheels
+  /// start one after another from the right.
+  odometer,
+
+  /// Like [odometer], but every digit sits on a cylinder: it tilts away with
+  /// perspective and fades towards the edge of the cell.
+  drum,
+
+  /// Slot machine: every wheel first spins one extra full turn, all at once, and
+  /// they stop one after another from the left. Looks best with a longer
+  /// `duration` (around one second).
+  slot,
+}
+
+/// Which way the wheels of a [RollingCount] turn.
+enum RollDirection {
+  /// Up when the number grows, down when it shrinks.
+  byChange,
+
+  /// Always up, also when the number shrinks.
+  up,
+
+  /// Always down, also when the number grows.
+  down,
+}
 
 /// An integer shown as odometer-style digit wheels that roll to the new number.
 ///
 /// Every digit is its own wheel. When [value] changes, each wheel rolls through
 /// the digits in between (up when the number grows, down when it shrinks), the
 /// wheels start one after another from the right, and the default [curve]
-/// overshoots a little so they settle with a small bounce. Digits that appear or
+/// overshoots a little so they settle with a small bounce. [roll] switches to a
+/// 3D drum or a slot machine, [direction] forces the way the wheels turn,
+/// [stagger] sets the delay between wheels and [upColor] / [downColor] tint the
+/// text while it rolls. Digits that appear or
 /// disappear (12 to 142, 142 to 7) slide in or out and the row of digits grows or
 /// shrinks smoothly.
 ///
@@ -43,6 +73,11 @@ class RollingCount extends StatefulWidget {
     this.initialValue,
     this.duration = const Duration(milliseconds: 700),
     this.curve = Curves.easeOutBack,
+    this.roll = RollStyle.odometer,
+    this.direction = RollDirection.byChange,
+    this.stagger = const Duration(milliseconds: 40),
+    this.upColor,
+    this.downColor,
     this.format = _plain,
     super.key,
   });
@@ -81,6 +116,24 @@ class RollingCount extends StatefulWidget {
   /// The easing of every wheel. Defaults to [Curves.easeOutBack], which settles
   /// with a small bounce.
   final Curve curve;
+
+  /// How the wheels move: flat [RollStyle.odometer] (default), 3D
+  /// [RollStyle.drum] or [RollStyle.slot] machine.
+  final RollStyle roll;
+
+  /// Which way the wheels turn. Defaults to [RollDirection.byChange].
+  final RollDirection direction;
+
+  /// The delay between two neighbouring wheels. Zero makes all wheels move
+  /// together.
+  final Duration stagger;
+
+  /// If set, the text briefly shifts to this color while the number rolls up
+  /// (for example green), and back to its normal color when it stops.
+  final Color? upColor;
+
+  /// Like [upColor], for a number that shrinks (for example red).
+  final Color? downColor;
 
   /// Turns the number into text, e.g. to add thousands separators. Defaults to
   /// `int.toString`.
@@ -131,7 +184,7 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
   void _roll() {
     if (_from == widget.value) return;
     final columns = [widget.format(_from).length, widget.format(widget.value).length].reduce((a, b) => a > b ? a : b);
-    _totalMs = widget.duration.inMilliseconds + _stagger.inMilliseconds * (columns - 1);
+    _totalMs = widget.duration.inMilliseconds + widget.stagger.inMilliseconds * (columns - 1);
     _controller
       ..duration = Duration(milliseconds: _totalMs)
       ..forward(from: 0);
@@ -181,13 +234,18 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
-          final elapsed = animate && _totalMs > 0 ? _controller.value * _totalMs : double.infinity;
+          final running = animate && _totalMs > 0 && _controller.isAnimating;
+          final elapsed = running ? _controller.value * _totalMs : double.infinity;
+          final flash = widget.value >= _from ? widget.upColor : widget.downColor;
+          final shown = flash != null && style.color != null && running
+              ? style.copyWith(color: Color.lerp(style.color, flash, math.sin(math.pi * _controller.value)))
+              : style;
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (widget.prefix.isNotEmpty) Text(widget.prefix, style: style),
-              ..._columns(style, scaler, elapsed),
-              if (widget.suffix.isNotEmpty) Text(widget.suffix, style: style),
+              if (widget.prefix.isNotEmpty) Text(widget.prefix, style: shown),
+              ..._columns(shown, scaler, elapsed),
+              if (widget.suffix.isNotEmpty) Text(widget.suffix, style: shown),
             ],
           );
         },
@@ -198,23 +256,38 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
   List<Widget> _columns(TextStyle style, TextScaler scaler, double elapsedMs) {
     final from = widget.format(_from);
     final to = widget.format(widget.value);
-    final up = widget.value >= _from;
+    final up = switch (widget.direction) {
+      RollDirection.byChange => widget.value >= _from,
+      RollDirection.up => true,
+      RollDirection.down => false,
+    };
+    final slot = widget.roll == RollStyle.slot;
+    final stagger = widget.stagger.inMilliseconds;
     final count = from.length > to.length ? from.length : to.length;
     final result = <Widget>[];
     for (var i = count - 1; i >= 0; i--) {
       final a = i < from.length ? from[from.length - 1 - i] : null;
       final b = i < to.length ? to[to.length - 1 - i] : null;
-      final local = ((elapsedMs - _stagger.inMilliseconds * i) / widget.duration.inMilliseconds).clamp(0.0, 1.0);
+      // Odometer/drum: wheel i starts i staggers late. Slot: all start together,
+      // the wheel j places from the left stops j staggers later.
+      final delay = slot ? 0 : stagger * i;
+      final span = widget.duration.inMilliseconds + (slot ? stagger * (count - 1 - i) : 0);
+      final local = ((elapsedMs - delay) / span).clamp(0.0, 1.0);
       final p = widget.curve.transform(local);
       if (a == b && !_isDigit(a)) {
         result.add(_cell(style, _width(b, style, scaler), [_glyph(b, style, 0)]));
       } else if (_isDigit(a) && _isDigit(b)) {
         final s = int.parse(a!);
         final e = int.parse(b!);
-        final steps = up ? (e - s) % 10 : -((s - e) % 10);
+        final steps = (up ? (e - s) % 10 : -((s - e) % 10)) + (slot ? (up ? 10 : -10) : 0);
         final x = s + steps * p;
         final floor = x.floor();
-        result.add(_cell(style, _digitWidth, _slide('${floor % 10}', '${(floor + 1) % 10}', x - floor, 1, style)));
+        result.add(
+          _cell(style, _digitWidth, [
+            for (var k = floor - 1; k <= floor + 2; k++)
+              if ((k - x).abs() < 1) _glyph('${k % 10}', style, k - x),
+          ]),
+        );
       } else {
         final width = _width(a, style, scaler) + (_width(b, style, scaler) - _width(a, style, scaler)) * p.clamp(0.0, 1.0);
         result.add(_cell(style, width, _slide(a, b, p, up ? 1 : -1, style)));
@@ -234,18 +307,32 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
     if (p > 0) _glyph(b, style, direction * (1 - p)),
   ];
 
-  /// A glyph [offset] cell heights away from its place (0 = in place).
+  /// A glyph [offset] cell heights away from its place (0 = in place). The
+  /// drum tilts it around the horizontal axis (50 degrees per cell height).
   Widget _glyph(String? glyph, TextStyle style, double offset) {
     if (glyph == null) return const SizedBox.shrink();
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: offset * _height,
-      height: _height,
-      child: Center(child: Text(glyph, style: style, maxLines: 1, softWrap: false)),
-    );
+    Widget child = Center(child: Text(glyph, style: style, maxLines: 1, softWrap: false));
+    var top = offset * _height;
+    if (widget.roll == RollStyle.drum && offset != 0) {
+      final angle = offset * _drumAngle;
+      top = _height / math.sin(_drumAngle) * math.sin(angle);
+      child = Opacity(
+        opacity: math.cos(angle).clamp(0.0, 1.0),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.9 / _height)
+            ..rotateX(angle),
+          child: child,
+        ),
+      );
+    }
+    return Positioned(left: 0, right: 0, top: top, height: _height, child: child);
   }
 }
+
+/// Angle between two neighbouring digits on the drum.
+const _drumAngle = 50 * math.pi / 180;
 
 bool _isDigit(String? c) => c != null && c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57;
 
