@@ -1,5 +1,7 @@
 # animated_count
 
+![Counting up and down on button taps](https://raw.githubusercontent.com/Parteicoder/animated_count/main/doc/demo.gif)
+
 Tiny Flutter widgets that count a number up or down to its new value: `AnimatedCount` for integers, `AnimatedDecimal` for decimals and currencies.
 
 It renders **one plain `Text`**, so font scaling, line wrapping, baseline alignment and

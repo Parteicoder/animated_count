@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Add a demo GIF to the README and the pub.dev screenshots tab.
+
 ## 0.2.0
 
 - Add `AnimatedDecimal` for `double` values (prices, averages, percentages) with `fractionDigits` and a custom `format`, for example a currency.
