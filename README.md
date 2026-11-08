@@ -1,6 +1,6 @@
 # animated_count
 
-A tiny Flutter widget that counts an integer up or down to its new value.
+Tiny Flutter widgets that count a number up or down to its new value: `AnimatedCount` for integers, `AnimatedDecimal` for decimals and currencies.
 
 It renders **one plain `Text`**, so font scaling, line wrapping, baseline alignment and
 screen readers behave like for any other text. No custom painting, no extra dependencies.
@@ -12,6 +12,12 @@ AnimatedCount(
   style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
 )
 ```
+
+## Features
+
+- **int, double and currency**: `AnimatedCount` for integers, `AnimatedDecimal` for decimals, and a `format` callback for thousands separators, percentages or any currency.
+- **Your own curve and duration**: `curve` (default `Curves.easeOutCubic`) and `duration` (default 600 ms) on both widgets.
+- Remember the last shown number with `initialValue`, so a re-opened screen counts only when something changed.
 
 A runnable demo lives in [`example/`](example).
 
@@ -44,6 +50,21 @@ AnimatedCount(
   format: (n) => NumberFormat.decimalPattern('en_US').format(n), // package:intl
 )
 ```
+
+## Decimals and currencies
+
+```dart
+AnimatedDecimal(
+  value: total,                       // a double
+  duration: const Duration(seconds: 1),
+  curve: Curves.easeInOut,
+  format: (v) => NumberFormat.currency(locale: 'en_US', symbol: r'$').format(v), // package:intl
+)
+```
+
+Without `format`, the number is shown with `fractionDigits` decimals (default 2).
+`prefix`, `suffix`, `style`, `textAlign`, `countFromZero` and `initialValue` work like on
+`AnimatedCount`.
 
 ## Remember the last number
 

@@ -1,6 +1,7 @@
-/// A tiny Flutter widget that counts an integer up or down to its new value.
+/// Tiny Flutter widgets that count a number up or down to its new value:
+/// [AnimatedCount] for integers and [AnimatedDecimal] for decimals and currencies.
 ///
-/// [AnimatedCount] renders one plain `Text`, so font scaling, line wrapping and
+/// Both render one plain `Text`, so font scaling, line wrapping and
 /// screen readers behave like for any other text. See the README for details.
 ///
 /// ```dart
@@ -9,3 +10,4 @@
 library;
 
 export 'src/animated_count.dart';
+export 'src/animated_decimal.dart';
