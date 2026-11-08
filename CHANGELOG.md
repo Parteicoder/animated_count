@@ -1,3 +1,8 @@
+## 0.2.0
+
+- Add `AnimatedDecimal` for `double` values (prices, averages, percentages) with `fractionDigits` and a custom `format`, for example a currency.
+- `duration` and `curve` work on both widgets (tested).
+
 ## 0.1.3
 
 - Add `initialValue`: the first count starts from a number you remembered (for example the last number shown, kept in `shared_preferences`), so a re-opened screen does not count up from 0 again.

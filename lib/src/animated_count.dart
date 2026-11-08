@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'counting_text.dart';
+
 /// An integer that counts up or down whenever [value] changes.
 ///
 /// The first frame shows [value] immediately. Only a later change is animated,
@@ -86,20 +88,17 @@ class AnimatedCount extends StatelessWidget {
   String get text => '$prefix${format(value)}$suffix';
 
   @override
-  Widget build(BuildContext context) {
-    final animate = !MediaQuery.disableAnimationsOf(context);
-    return Semantics(
-      label: text,
-      excludeSemantics: true,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: (initialValue ?? (countFromZero ? 0 : value)).toDouble(), end: value.toDouble()),
-        duration: animate ? duration : Duration.zero,
-        curve: curve,
-        builder: (context, current, _) =>
-            Text('$prefix${format(current.round())}$suffix', style: style, textAlign: textAlign),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => countingText(
+    context,
+    from: (initialValue ?? (countFromZero ? 0 : value)).toDouble(),
+    to: value.toDouble(),
+    duration: duration,
+    curve: curve,
+    text: (current) => '$prefix${format(current.round())}$suffix',
+    label: text,
+    style: style,
+    textAlign: textAlign,
+  );
 }
 
 String _plain(int number) => number.toString();

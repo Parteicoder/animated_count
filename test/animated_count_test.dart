@@ -11,6 +11,8 @@ Widget _app(Widget child, {bool disableAnimations = false, double textScale = 1}
 
 String _dots(int n) => n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.');
 
+String _euro(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} EUR';
+
 void main() {
   testWidgets('shows the initial value immediately', (tester) async {
     await tester.pumpWidget(_app(const AnimatedCount(value: 12, suffix: ' items')));
@@ -104,5 +106,84 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  group('AnimatedDecimal', () {
+    testWidgets('shows the value immediately with two decimals by default', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 12.5)));
+      expect(find.text('12.50'), findsOneWidget);
+    });
+
+    testWidgets('fractionDigits controls the default formatting', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 3.14159, fractionDigits: 3)));
+      expect(find.text('3.142'), findsOneWidget);
+    });
+
+    testWidgets('counts to a new value and ends exactly on it', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 1.5)));
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 99.99)));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('1.50'), findsNothing);
+      expect(find.text('99.99'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.text('99.99'), findsOneWidget);
+    });
+
+    testWidgets('a currency format is applied to every shown number', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 1234.5, format: _euro, prefix: 'Total: ')));
+      expect(find.text('Total: 1234,50 EUR'), findsOneWidget);
+    });
+
+    testWidgets('initialValue and countFromZero start the first count', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 10, initialValue: 7.5)));
+      expect(find.text('7.50'), findsOneWidget);
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(_app(const SizedBox())); // a fresh first appearance
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 10, countFromZero: true)));
+      expect(find.text('0.00'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('10.00'), findsOneWidget);
+    });
+
+    testWidgets('screen readers get the formatted final value', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 5, format: _euro, countFromZero: true)));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.bySemanticsLabel('5,00 EUR'), findsOneWidget);
+      await tester.pumpAndSettle();
+      semantics.dispose();
+    });
+  });
+
+  group('duration and curve', () {
+    testWidgets('a custom duration is respected', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedCount(value: 0, duration: Duration(seconds: 2), curve: Curves.linear)));
+      await tester.pumpWidget(_app(const AnimatedCount(value: 100, duration: Duration(seconds: 2), curve: Curves.linear)));
+      await tester.pump(); // start the animation
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('50'), findsOneWidget); // halfway after half the time, linear
+      await tester.pumpAndSettle();
+      expect(find.text('100'), findsOneWidget);
+    });
+
+    testWidgets('a custom curve shapes the count', (tester) async {
+      // easeIn is slower than linear at the start: at half the time it is below 50.
+      await tester.pumpWidget(_app(const AnimatedCount(value: 0, duration: Duration(seconds: 2), curve: Curves.easeIn)));
+      await tester.pumpWidget(_app(const AnimatedCount(value: 100, duration: Duration(seconds: 2), curve: Curves.easeIn)));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final shown = int.parse((tester.widget<Text>(find.byType(Text))).data!);
+      expect(shown, lessThan(50));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('AnimatedDecimal takes duration and curve too', (tester) async {
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 0, duration: Duration(seconds: 2), curve: Curves.linear)));
+      await tester.pumpWidget(_app(const AnimatedDecimal(value: 10, duration: Duration(seconds: 2), curve: Curves.linear)));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('5.00'), findsOneWidget);
+      await tester.pumpAndSettle();
+    });
   });
 }
