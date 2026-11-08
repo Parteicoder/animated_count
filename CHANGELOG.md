@@ -1,3 +1,8 @@
+## 0.3.1
+
+- `RollingCount`: a new value in the middle of a roll now continues from roughly the number on display instead of snapping back to the previous target.
+- README: how to find a `RollingCount` in widget tests.
+
 ## 0.3.0
 
 - Add `RollingCount`: odometer-style digit wheels that roll through the digits in between, with a staggered start and a small bounce. `AnimatedCount` and `AnimatedDecimal` are unchanged.

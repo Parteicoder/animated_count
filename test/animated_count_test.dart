@@ -286,6 +286,21 @@ void rollingTests() {
       expect(color(), base);
     });
 
+    testWidgets('a change in the middle of a roll continues from the shown number', (tester) async {
+      Widget count(int v) => _app(RollingCount(value: v, curve: Curves.linear));
+      await tester.pumpWidget(count(10));
+      await tester.pumpWidget(count(90));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350)); // about 50 shown
+      await tester.pumpWidget(count(95));
+      await tester.pump();
+      expect(find.text('9'), findsNothing); // no snap to the old target 90
+      expect(find.text('5'), findsWidgets);
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('95'), findsOneWidget);
+      expect(find.byType(Text), findsNWidgets(2));
+    });
+
     testWidgets('jumps instantly when animations are disabled', (tester) async {
       await tester.pumpWidget(_app(const RollingCount(value: 1), disableAnimations: true));
       await tester.pumpWidget(_app(const RollingCount(value: 9), disableAnimations: true));
