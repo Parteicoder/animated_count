@@ -168,9 +168,11 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
   void didUpdateWidget(RollingCount old) {
     super.didUpdateWidget(old);
     if (old.value != widget.value) {
-      // ponytail: a change in the middle of a roll restarts from the old target
-      // (a visible snap); animate from the shown position if that bothers you.
-      _from = old.value;
+      // A change in the middle of a roll continues from roughly what is shown
+      // now (the eased progress of the old roll) instead of snapping to its target.
+      // ponytail: the estimate ignores the per-wheel stagger, so single wheels can
+      // still jump by a digit or two.
+      _from = _controller.isAnimating ? _shownNow(old.value) : old.value;
       _roll();
     }
   }
@@ -179,6 +181,13 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// The number roughly on display while the current roll is still running.
+  int _shownNow(int target) {
+    final t = (_controller.value * _totalMs / widget.duration.inMilliseconds).clamp(0.0, 1.0);
+    final p = widget.curve.transform(t).clamp(0.0, 1.0);
+    return _from + ((target - _from) * p).round();
   }
 
   void _roll() {

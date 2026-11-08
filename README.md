@@ -128,6 +128,20 @@ It takes the same parameters as `AnimatedCount` (`prefix`, `suffix`, `style`, `f
 `Curves.easeOutBack`. Separators from `format` stay plain text, screen readers read the final
 text, and the number jumps if the system disables animations.
 
+## Testing
+
+`RollingCount` puts every digit in its own `Text`, so `find.text('142 posters')` finds nothing.
+Find it by its final text instead:
+
+```dart
+Finder count(String text) =>
+    find.byWidgetPredicate((w) => w is RollingCount && w.text == text);
+
+expect(count('142 posters'), findsOneWidget);
+```
+
+or use `find.bySemanticsLabel('142 posters')` (needs `tester.ensureSemantics()`).
+
 ## Which one?
 
 Rolling digits need a custom layout (one fixed-width cell per digit), so `RollingCount` is not a
