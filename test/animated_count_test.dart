@@ -14,6 +14,7 @@ String _dots(int n) => n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'
 String _euro(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} EUR';
 
 void main() {
+  rollingTests();
   testWidgets('shows the initial value immediately', (tester) async {
     await tester.pumpWidget(_app(const AnimatedCount(value: 12, suffix: ' items')));
     expect(find.text('12 items'), findsOneWidget);
@@ -184,6 +185,113 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('5.00'), findsOneWidget);
       await tester.pumpAndSettle();
+    });
+  });
+}
+
+void rollingTests() {
+  group('RollingCount', () {
+    testWidgets('shows the initial value and its label immediately', (tester) async {
+      await tester.pumpWidget(_app(const RollingCount(value: 12, suffix: ' items')));
+      expect(find.bySemanticsLabel('12 items'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('rolls up, ends exactly on the new value and leaves no extra wheel digits', (tester) async {
+      await tester.pumpWidget(_app(const RollingCount(value: 12)));
+      await tester.pumpWidget(_app(const RollingCount(value: 142)));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('3'), findsWidgets); // rolling through the digits in between
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('142'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('4'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.byType(Text), findsNWidgets(3));
+    });
+
+    testWidgets('rolls down and drops the vanished digits (142 to 7)', (tester) async {
+      await tester.pumpWidget(_app(const RollingCount(value: 142)));
+      await tester.pumpWidget(_app(const RollingCount(value: 7)));
+      await tester.pumpAndSettle();
+      expect(find.byType(Text), findsOneWidget);
+      expect(find.text('7'), findsOneWidget);
+    });
+
+    testWidgets('keeps thousands separators as plain text', (tester) async {
+      await tester.pumpWidget(_app(RollingCount(value: 999, format: _dots)));
+      await tester.pumpWidget(_app(RollingCount(value: 1000, format: _dots)));
+      await tester.pumpAndSettle();
+      expect(find.text('.'), findsOneWidget);
+      expect(find.bySemanticsLabel('1.000'), findsOneWidget);
+    });
+
+    testWidgets('countFromZero starts at 0, initialValue wins', (tester) async {
+      await tester.pumpWidget(_app(const RollingCount(value: 30, countFromZero: true)));
+      expect(find.text('0'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('3'), findsOneWidget);
+      await tester.pumpWidget(_app(const RollingCount(value: 5, countFromZero: true, initialValue: 5, key: ValueKey('b'))));
+      expect(find.byType(Text), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+    });
+
+
+    for (final roll in RollStyle.values) {
+      testWidgets('${roll.name} ends exactly on the new value', (tester) async {
+        await tester.pumpWidget(_app(RollingCount(value: 12, roll: roll)));
+        await tester.pumpWidget(_app(RollingCount(value: 1042, roll: roll)));
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(find.byType(Text), findsWidgets);
+        await tester.pumpAndSettle();
+        expect(find.bySemanticsLabel('1042'), findsOneWidget);
+        expect(find.byType(Text), findsNWidgets(4));
+        await tester.pumpWidget(_app(RollingCount(value: 7, roll: roll)));
+        await tester.pumpAndSettle();
+        expect(find.byType(Text), findsOneWidget);
+        expect(find.text('7'), findsOneWidget);
+      });
+    }
+
+    testWidgets('direction forces the way the wheel turns', (tester) async {
+      Future<void> run(RollDirection d) async {
+        await tester.pumpWidget(_app(RollingCount(value: 1, direction: d, curve: Curves.linear)));
+        await tester.pumpWidget(_app(RollingCount(value: 2, direction: d, curve: Curves.linear)));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+      }
+
+      await run(RollDirection.down); // 1 -> 2 down = 9 steps through 0, 9 ... 3
+      expect(find.text('6'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('2'), findsOneWidget);
+      await tester.pumpWidget(_app(const SizedBox()));
+      await run(RollDirection.up); // 1 -> 2 up = 1 step
+      expect(find.text('6'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('upColor and downColor tint the text while rolling and restore it', (tester) async {
+      const base = Color(0xFF000000);
+      Color? color() => tester.widget<Text>(find.byType(Text).first).style?.color;
+      await tester.pumpWidget(_app(const RollingCount(value: 5, style: TextStyle(color: base), upColor: Color(0xFF00FF00), downColor: Color(0xFFFF0000))));
+      await tester.pumpWidget(_app(const RollingCount(value: 6, style: TextStyle(color: base), upColor: Color(0xFF00FF00), downColor: Color(0xFFFF0000))));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(color(), isNot(base));
+      expect(color()!.g, greaterThan(color()!.r)); // green, not red
+      await tester.pumpAndSettle();
+      expect(color(), base);
+    });
+
+    testWidgets('jumps instantly when animations are disabled', (tester) async {
+      await tester.pumpWidget(_app(const RollingCount(value: 1), disableAnimations: true));
+      await tester.pumpWidget(_app(const RollingCount(value: 9), disableAnimations: true));
+      await tester.pump();
+      expect(find.text('9'), findsOneWidget);
+      expect(find.byType(Text), findsOneWidget);
     });
   });
 }

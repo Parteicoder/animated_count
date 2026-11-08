@@ -9,7 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _frameMs = 50;
+const _frameMs = 33;
 late void Function(int value, int pressed) _set;
 
 class _Scene extends StatefulWidget {
@@ -48,13 +48,34 @@ class _SceneState extends State<_Scene> {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AnimatedCount(
-          value: value,
-          suffix: value == 1 ? ' poster' : ' posters',
-          countFromZero: true,
-          style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w600, color: Color(0xFF004D40)),
-        ),
-        const SizedBox(height: 28),
+        for (final roll in RollStyle.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text(roll.name, style: const TextStyle(fontSize: 15, color: Color(0xFF6B8F8A))),
+                ),
+                SizedBox(
+                  width: 190,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: RollingCount(
+                      value: value,
+                      roll: roll,
+                      duration: Duration(milliseconds: roll == RollStyle.slot ? 1000 : 700),
+                      suffix: value == 1 ? ' poster' : ' posters',
+                      countFromZero: true,
+                      style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w600, color: Color(0xFF004D40)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 14),
         Row(
           mainAxisSize: MainAxisSize.min,
           spacing: 24,
@@ -71,7 +92,7 @@ void main() {
       ..addFont(Future.value(ByteData.sublistView(File(r'C:\Windows\Fonts\segoeui.ttf').readAsBytesSync())));
     await font.load();
     final key = GlobalKey();
-    tester.view.physicalSize = const Size(720, 400);
+    tester.view.physicalSize = const Size(720, 560);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -100,12 +121,12 @@ void main() {
     }
 
     // (target, button pressed, hold ms after the 600 ms count)
-    await frames(900); // 0 -> 12
+    await frames(1500); // 0 -> 12
     for (final (v, p) in [(142, 2), (272, 2), (265, 1)]) {
       _set(v, p);
       await frames(150);
       _set(v, 0);
-      await frames(1350);
+      await frames(1650);
     }
   });
 }
