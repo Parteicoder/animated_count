@@ -67,9 +67,10 @@ AnimatedCount(
 ```
 
 If `value` changes while a count is running, only the last count calls `onEnd`. It is not
-called when nothing is animated: on the first frame, or when `value` did not change. With
-system animations off the number jumps and `onEnd` follows right away (`RollingCount`: after
-its normal duration).
+called when nothing is animated: on the first appearance (unless `countFromZero` or
+`initialValue` is set), or when `value` did not change. With system animations off the number
+jumps and `onEnd` follows at the end of the frame (`RollingCount`: after its normal duration), so
+it may call `setState`.
 
 ## Decimals and currencies
 
@@ -165,7 +166,7 @@ TieredCount(
 The badge changes when the count has finished, not while the number is on its way, so counting
 from 40 to 1000 does not show "Diamond" right away. `onTierChange` is called at that moment, and
 only when the tier really changes. Screen readers read the number and the tier in one piece
-(`50 posters, Gold`).
+(`50 posters, Gold`); during a count the tier is still the old one.
 
 Your own steps replace the medals:
 
@@ -179,7 +180,7 @@ TieredCount(
 )
 ```
 
-`tierFor(value, tiers)` gives the tier for a number if you want it without the widget. It takes
+`CountTier.forValue(value, tiers)` gives the tier for a number if you want it without the widget. It takes
 the same parameters as `AnimatedCount` (except `textAlign`), plus `tiers` and `onTierChange`.
 
 ## Testing

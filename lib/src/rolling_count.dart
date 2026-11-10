@@ -143,8 +143,9 @@ class RollingCount extends StatefulWidget {
   /// Called when a roll has finished, after all wheels stopped on [value].
   ///
   /// If [value] changes in the middle of a roll, only the last roll calls it.
-  /// It is not called when nothing is animated (the first frame, or a [value]
-  /// that did not change).
+  /// It is not called when nothing is animated: on the first appearance (unless
+  /// [countFromZero] or [initialValue] is set) or when [value] did not change.
+  /// A zero-length roll calls it at the end of the frame, so it may call `setState`.
   final VoidCallback? onEnd;
 
   /// The full text in its final state, e.g. what a screen reader announces.
@@ -170,7 +171,15 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
     super.initState();
     _from = widget.initialValue ?? (widget.countFromZero ? 0 : widget.value);
     _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) widget.onEnd?.call();
+      if (status != AnimationStatus.completed) return;
+      // A zero-length roll completes inside initState/didUpdateWidget: wait for the end of the frame.
+      if (_totalMs == 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onEnd?.call();
+        });
+      } else {
+        widget.onEnd?.call();
+      }
     });
     _roll();
   }

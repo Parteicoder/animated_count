@@ -239,6 +239,42 @@ void onEndTests() {
       expect(calls, 1);
     });
 
+    for (final entry in {
+      'AnimatedCount with system animations off': (int v, VoidCallback end) => AnimatedCount(value: v, onEnd: end),
+      'AnimatedDecimal with system animations off': (int v, VoidCallback end) => AnimatedDecimal(value: v.toDouble(), onEnd: end),
+      'RollingCount with zero duration and stagger': (int v, VoidCallback end) =>
+          RollingCount(value: v, duration: Duration.zero, stagger: Duration.zero, onEnd: end),
+      'AnimatedCount with zero duration': (int v, VoidCallback end) => AnimatedCount(value: v, duration: Duration.zero, onEnd: end),
+    }.entries) {
+      testWidgets('onEnd may call setState when nothing animates: ${entry.key}', (tester) async {
+        var ended = 0;
+        Widget build(int v) => _app(
+          StatefulBuilder(
+            builder: (context, setState) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [entry.value(v, () => setState(() => ended++)), Text('ended $ended')],
+            ),
+          ),
+          disableAnimations: entry.key.contains('system animations off'),
+        );
+        await tester.pumpWidget(build(1));
+        await tester.pumpWidget(build(50));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('ended 1'), findsOneWidget);
+      });
+    }
+
+    testWidgets('AnimatedCount: removing it in the middle of a count calls nothing', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 1, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(AnimatedCount(value: 50, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(_app(const SizedBox()));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+
     testWidgets('AnimatedDecimal calls it once, after the count has finished', (tester) async {
       var calls = 0;
       await tester.pumpWidget(_app(AnimatedDecimal(value: 1.5, onEnd: () => calls++)));

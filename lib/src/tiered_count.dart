@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'animated_count.dart';
@@ -20,9 +22,26 @@ class CountTier {
   /// The color of [label].
   final Color textColor;
 
+  /// The highest tier in [tiers] that [value] has reached, or null below the first one.
+  /// [tiers] needs no particular order.
+  static CountTier? forValue(int value, List<CountTier> tiers) {
+    CountTier? found;
+    for (final tier in tiers) {
+      if (tier.at <= value && (found == null || tier.at > found.at)) found = tier;
+    }
+    return found;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is CountTier && other.at == at && other.label == label && other.color == color && other.textColor == textColor;
+
+  @override
+  int get hashCode => Object.hash(at, label, color, textColor);
+
   /// Bronze to diamond at 10, 25, 50, 100, 250, 500 and 1000.
   static const medals = <CountTier>[
-    CountTier(at: 10, label: 'Bronze', color: Color(0xFFC77B30)),
+    CountTier(at: 10, label: 'Bronze', color: Color(0xFF9C5A1F)),
     CountTier(at: 25, label: 'Silver', color: Color(0xFF9AA3AD), textColor: Color(0xFF2B3138)),
     CountTier(at: 50, label: 'Gold', color: Color(0xFFE0A712), textColor: Color(0xFF4A3300)),
     CountTier(at: 100, label: 'Ruby', color: Color(0xFFE5005A)),
@@ -32,16 +51,6 @@ class CountTier {
   ];
 }
 
-/// The highest tier in [tiers] that [value] has reached, or null below the first one.
-/// [tiers] needs no particular order.
-CountTier? tierFor(int value, List<CountTier> tiers) {
-  CountTier? found;
-  for (final tier in tiers) {
-    if (tier.at <= value && (found == null || tier.at > found.at)) found = tier;
-  }
-  return found;
-}
-
 /// An [AnimatedCount] with a badge for the tier the number has reached, for
 /// example Bronze at 10 and Gold at 50 ([CountTier.medals]).
 ///
@@ -49,7 +58,7 @@ CountTier? tierFor(int value, List<CountTier> tiers) {
 /// on its way, so counting from 40 to 1000 does not show "Diamond" right away.
 /// [onTierChange] is called then too, a good place for a celebration. Below the
 /// first tier there is no badge. Screen readers get the final text and the
-/// tier in one piece.
+/// tier shown at that moment in one piece (the new tier follows when the count ends).
 ///
 /// ```dart
 /// TieredCount(
@@ -73,7 +82,7 @@ class TieredCount extends StatefulWidget {
     this.initialValue,
     this.duration = const Duration(milliseconds: 600),
     this.curve = Curves.easeOutCubic,
-    this.format,
+    this.format = _plain,
     this.onEnd,
     this.onTierChange,
     super.key,
@@ -107,8 +116,8 @@ class TieredCount extends StatefulWidget {
   /// The easing of the count.
   final Curve curve;
 
-  /// Turns the number into text. Defaults to `int.toString`.
-  final String Function(int number)? format;
+  /// Turns the number into text, e.g. to add thousands separators. Defaults to `int.toString`.
+  final String Function(int number) format;
 
   /// Called when a count has finished, see [AnimatedCount.onEnd].
   final VoidCallback? onEnd;
@@ -121,11 +130,14 @@ class TieredCount extends StatefulWidget {
   State<TieredCount> createState() => _TieredCountState();
 }
 
+String _plain(int number) => number.toString();
+
 class _TieredCountState extends State<TieredCount> {
-  late CountTier? _tier = tierFor(widget.initialValue ?? (widget.countFromZero ? 0 : widget.value), widget.tiers);
+  late CountTier? _tier = CountTier.forValue(widget.initialValue ?? (widget.countFromZero ? 0 : widget.value), widget.tiers);
 
   void _ended() {
-    final next = tierFor(widget.value, widget.tiers);
+    if (!mounted) return;
+    final next = CountTier.forValue(widget.value, widget.tiers);
     if (next != _tier) {
       final old = _tier;
       setState(() => _tier = next);
@@ -145,7 +157,7 @@ class _TieredCountState extends State<TieredCount> {
       initialValue: widget.initialValue,
       duration: widget.duration,
       curve: widget.curve,
-      format: widget.format ?? (n) => n.toString(),
+      format: widget.format,
       onEnd: _ended,
     );
     final tier = _tier;
@@ -165,7 +177,7 @@ class _TieredCountState extends State<TieredCount> {
               decoration: BoxDecoration(color: tier.color, borderRadius: BorderRadius.circular(999)),
               child: Text(
                 tier.label,
-                style: TextStyle(color: tier.textColor, fontSize: (base.fontSize ?? 14) * 0.55, fontWeight: FontWeight.w700),
+                style: TextStyle(color: tier.textColor, fontSize: math.max((base.fontSize ?? 14) * 0.55, 11), fontWeight: FontWeight.w700),
               ),
             ),
         ],

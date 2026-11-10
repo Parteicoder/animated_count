@@ -88,8 +88,10 @@ class AnimatedCount extends StatelessWidget {
   /// Called when a count has finished, after the number reached [value].
   ///
   /// If [value] changes in the middle of a count, only the last count calls it.
-  /// It is not called when nothing is animated (the first frame, or a [value]
-  /// that did not change).
+  /// It is not called when nothing is animated: on the first appearance (unless
+  /// [countFromZero] or [initialValue] is set) or when [value] did not change.
+  /// Without an animation (the system disables them, or [duration] is zero) it
+  /// runs at the end of the frame, so it may call `setState`.
   final VoidCallback? onEnd;
 
   /// The full text in its final state, e.g. what a screen reader announces.

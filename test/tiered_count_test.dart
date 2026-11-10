@@ -2,19 +2,24 @@ import 'package:animated_count/animated_count.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _app(Widget child) => MaterialApp(home: Scaffold(body: Center(child: child)));
+Widget _app(Widget child, {bool disableAnimations = false}) => MaterialApp(
+  home: MediaQuery(
+    data: MediaQueryData(disableAnimations: disableAnimations),
+    child: Scaffold(body: Center(child: child)),
+  ),
+);
 
 void main() {
-  group('tierFor', () {
+  group('CountTier.forValue', () {
     test('returns the highest tier reached, null below the first', () {
-      expect(tierFor(0, CountTier.medals), isNull);
-      expect(tierFor(9, CountTier.medals), isNull);
-      expect(tierFor(10, CountTier.medals)?.label, 'Bronze');
-      expect(tierFor(49, CountTier.medals)?.label, 'Silver');
-      expect(tierFor(50, CountTier.medals)?.label, 'Gold');
-      expect(tierFor(999, CountTier.medals)?.label, 'Amethyst');
-      expect(tierFor(1000, CountTier.medals)?.label, 'Diamond');
-      expect(tierFor(5000, CountTier.medals)?.label, 'Diamond');
+      expect(CountTier.forValue(0, CountTier.medals), isNull);
+      expect(CountTier.forValue(9, CountTier.medals), isNull);
+      expect(CountTier.forValue(10, CountTier.medals)?.label, 'Bronze');
+      expect(CountTier.forValue(49, CountTier.medals)?.label, 'Silver');
+      expect(CountTier.forValue(50, CountTier.medals)?.label, 'Gold');
+      expect(CountTier.forValue(999, CountTier.medals)?.label, 'Amethyst');
+      expect(CountTier.forValue(1000, CountTier.medals)?.label, 'Diamond');
+      expect(CountTier.forValue(5000, CountTier.medals)?.label, 'Diamond');
     });
 
     test('does not need sorted tiers', () {
@@ -22,8 +27,8 @@ void main() {
         CountTier(at: 100, label: 'B', color: Color(0xFF000000)),
         CountTier(at: 5, label: 'A', color: Color(0xFF000000)),
       ];
-      expect(tierFor(7, tiers)?.label, 'A');
-      expect(tierFor(100, tiers)?.label, 'B');
+      expect(CountTier.forValue(7, tiers)?.label, 'A');
+      expect(CountTier.forValue(100, tiers)?.label, 'B');
     });
   });
 
@@ -85,6 +90,70 @@ void main() {
     testWidgets('screen readers get number and tier in one piece', (tester) async {
       await tester.pumpWidget(_app(const TieredCount(value: 50, suffix: ' posters')));
       expect(find.bySemanticsLabel('50 posters, Gold'), findsOneWidget);
+    });
+
+    testWidgets('the badge follows the number when system animations are off', (tester) async {
+      await tester.pumpWidget(_app(const TieredCount(value: 40), disableAnimations: true));
+      expect(find.text('Silver'), findsOneWidget);
+      await tester.pumpWidget(_app(const TieredCount(value: 1000), disableAnimations: true));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Diamond'), findsOneWidget);
+    });
+
+    testWidgets('countFromZero ends on the right badge when system animations are off', (tester) async {
+      await tester.pumpWidget(_app(const TieredCount(value: 100, countFromZero: true), disableAnimations: true));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Ruby'), findsOneWidget);
+    });
+
+    testWidgets('tiers built at run time (not const) do not report a change inside the same tier', (tester) async {
+      final changes = <String>[];
+      Widget build(int v) => _app(
+        TieredCount(
+          value: v,
+          tiers: [
+            CountTier(at: 10, label: 'Low', color: const Color(0xFF123456)),
+            CountTier(at: 100, label: 'High', color: const Color(0xFF654321)),
+          ],
+          onTierChange: (from, to) => changes.add('${from?.label}>${to?.label}'),
+        ),
+      );
+      await tester.pumpWidget(build(20));
+      await tester.pumpWidget(build(30));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(build(150));
+      await tester.pumpAndSettle();
+      expect(changes, ['Low>High']);
+    });
+
+    testWidgets('removing it in the middle of a count is safe and calls nothing', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(TieredCount(value: 1, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(TieredCount(value: 1000, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(_app(const SizedBox()));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(calls, 0);
+    });
+
+    test('CountTier compares by value', () {
+      expect(
+        CountTier(at: 1, label: 'A', color: const Color(0xFF000000)),
+        CountTier(at: 1, label: 'A', color: const Color(0xFF000000)),
+      );
+      expect(
+        CountTier(at: 1, label: 'A', color: const Color(0xFF000000)),
+        isNot(CountTier(at: 1, label: 'B', color: const Color(0xFF000000))),
+      );
+    });
+
+    testWidgets('the badge text is never tiny', (tester) async {
+      await tester.pumpWidget(_app(const TieredCount(value: 50)));
+      final text = tester.widget<Text>(find.text('Gold'));
+      expect(text.style!.fontSize, greaterThanOrEqualTo(11));
     });
 
     testWidgets('custom tiers replace the medals', (tester) async {
