@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Add `onEnd` to `AnimatedCount`, `AnimatedDecimal` and `RollingCount`: a callback that runs when a count or roll has finished. If the value changes in the middle, only the last one calls it. It is not called when nothing is animated.
+
 ## 0.3.1
 
 - `RollingCount`: a new value in the middle of a roll now continues from roughly the number on display instead of snapping back to the previous target.

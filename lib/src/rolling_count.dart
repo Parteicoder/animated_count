@@ -79,6 +79,7 @@ class RollingCount extends StatefulWidget {
     this.upColor,
     this.downColor,
     this.format = _plain,
+    this.onEnd,
     super.key,
   });
 
@@ -139,6 +140,13 @@ class RollingCount extends StatefulWidget {
   /// `int.toString`.
   final String Function(int number) format;
 
+  /// Called when a roll has finished, after all wheels stopped on [value].
+  ///
+  /// If [value] changes in the middle of a roll, only the last roll calls it.
+  /// It is not called when nothing is animated (the first frame, or a [value]
+  /// that did not change).
+  final VoidCallback? onEnd;
+
   /// The full text in its final state, e.g. what a screen reader announces.
   String get text => '$prefix${format(value)}$suffix';
 
@@ -161,6 +169,9 @@ class _RollingCountState extends State<RollingCount> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _from = widget.initialValue ?? (widget.countFromZero ? 0 : widget.value);
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) widget.onEnd?.call();
+    });
     _roll();
   }
 

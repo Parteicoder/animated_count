@@ -12,6 +12,7 @@ Widget countingText(
   required String label,
   TextStyle? style,
   TextAlign? textAlign,
+  VoidCallback? onEnd,
 }) {
   final animate = !MediaQuery.disableAnimationsOf(context);
   return Semantics(
@@ -21,6 +22,7 @@ Widget countingText(
       tween: Tween<double>(begin: from, end: to),
       duration: animate ? duration : Duration.zero,
       curve: curve,
+      onEnd: onEnd,
       builder: (context, current, _) => Text(text(current), style: style, textAlign: textAlign),
     ),
   );

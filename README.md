@@ -43,6 +43,7 @@ A runnable demo lives in [`example/`](example).
 | `duration` | 600 ms | Length of the animation. |
 | `curve` | `Curves.easeOutCubic` | Easing. |
 | `format` | `int.toString` | Formats every shown number, e.g. to add thousands separators. |
+| `onEnd` | `null` | Called when a count has finished (see below). |
 
 ### Thousands separators
 
@@ -52,6 +53,23 @@ AnimatedCount(
   format: (n) => NumberFormat.decimalPattern('en_US').format(n), // package:intl
 )
 ```
+
+## Do something when it is done
+
+`onEnd` is called once the number has reached its new value, for example to show a message
+or play a sound. All three widgets have it.
+
+```dart
+AnimatedCount(
+  value: posterCount,
+  onEnd: () => print('counted to $posterCount'),
+)
+```
+
+If `value` changes while a count is running, only the last count calls `onEnd`. It is not
+called when nothing is animated: on the first frame, or when `value` did not change. With
+system animations off the number jumps and `onEnd` follows right away (`RollingCount`: after
+its normal duration).
 
 ## Decimals and currencies
 
@@ -124,7 +142,7 @@ RollingCount(
 ```
 
 It takes the same parameters as `AnimatedCount` (`prefix`, `suffix`, `style`, `format`,
-`duration`, `curve`, `countFromZero`, `initialValue`); the defaults are 700 ms and
+`duration`, `curve`, `countFromZero`, `initialValue`, `onEnd`); the defaults are 700 ms and
 `Curves.easeOutBack`. Separators from `format` stay plain text, screen readers read the final
 text, and the number jumps if the system disables animations.
 
