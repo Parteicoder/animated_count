@@ -14,6 +14,7 @@ String _dots(int n) => n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'
 String _euro(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} EUR';
 
 void main() {
+  onEndTests();
   rollingTests();
   testWidgets('shows the initial value immediately', (tester) async {
     await tester.pumpWidget(_app(const AnimatedCount(value: 12, suffix: ' items')));
@@ -185,6 +186,150 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('5.00'), findsOneWidget);
       await tester.pumpAndSettle();
+    });
+  });
+}
+
+void onEndTests() {
+  group('onEnd', () {
+    testWidgets('AnimatedCount calls it once, after the count has finished', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 1, onEnd: () => calls++)));
+      expect(calls, 0); // the first frame is not animated
+      await tester.pumpWidget(_app(AnimatedCount(value: 50, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(calls, 0); // still counting
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(find.text('50'), findsOneWidget);
+    });
+
+    testWidgets('AnimatedCount calls it for a count from zero', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 30, countFromZero: true, onEnd: () => calls++)));
+      expect(calls, 0);
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('AnimatedCount does not call it when nothing is animated', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 7, initialValue: 7, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(AnimatedCount(value: 7, suffix: ' x', onEnd: () => calls++)));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+
+    testWidgets('AnimatedCount: a change in the middle of a count calls it only once', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 1, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(AnimatedCount(value: 50, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpWidget(_app(AnimatedCount(value: 80, onEnd: () => calls++)));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(find.text('80'), findsOneWidget);
+    });
+
+    testWidgets('AnimatedCount calls it when system animations are off', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 1, onEnd: () => calls++), disableAnimations: true));
+      await tester.pumpWidget(_app(AnimatedCount(value: 50, onEnd: () => calls++), disableAnimations: true));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    for (final entry in {
+      'AnimatedCount with system animations off': (int v, VoidCallback end) => AnimatedCount(value: v, onEnd: end),
+      'AnimatedDecimal with system animations off': (int v, VoidCallback end) => AnimatedDecimal(value: v.toDouble(), onEnd: end),
+      'RollingCount with zero duration and stagger': (int v, VoidCallback end) =>
+          RollingCount(value: v, duration: Duration.zero, stagger: Duration.zero, onEnd: end),
+      'AnimatedCount with zero duration': (int v, VoidCallback end) => AnimatedCount(value: v, duration: Duration.zero, onEnd: end),
+    }.entries) {
+      testWidgets('onEnd may call setState when nothing animates: ${entry.key}', (tester) async {
+        var ended = 0;
+        Widget build(int v) => _app(
+          StatefulBuilder(
+            builder: (context, setState) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [entry.value(v, () => setState(() => ended++)), Text('ended $ended')],
+            ),
+          ),
+          disableAnimations: entry.key.contains('system animations off'),
+        );
+        await tester.pumpWidget(build(1));
+        await tester.pumpWidget(build(50));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('ended 1'), findsOneWidget);
+      });
+    }
+
+    testWidgets('AnimatedCount: removing it in the middle of a count calls nothing', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedCount(value: 1, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(AnimatedCount(value: 50, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(_app(const SizedBox()));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+
+    testWidgets('AnimatedDecimal calls it once, after the count has finished', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(AnimatedDecimal(value: 1.5, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(AnimatedDecimal(value: 99.9, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(calls, 0);
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('RollingCount calls it once, after all wheels have stopped', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(RollingCount(value: 12, onEnd: () => calls++)));
+      expect(calls, 0);
+      await tester.pumpWidget(_app(RollingCount(value: 142, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(calls, 0); // still rolling
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('RollingCount: a change in the middle of a roll calls it only once', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(RollingCount(value: 12, onEnd: () => calls++)));
+      await tester.pumpWidget(_app(RollingCount(value: 142, onEnd: () => calls++)));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpWidget(_app(RollingCount(value: 7, onEnd: () => calls++)));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('RollingCount does not call it when nothing is animated', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(RollingCount(value: 7, initialValue: 7, onEnd: () => calls++)));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+
+    testWidgets('RollingCount calls it after its normal duration when system animations are off', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_app(RollingCount(value: 1, onEnd: () => calls++), disableAnimations: true));
+      await tester.pumpWidget(_app(RollingCount(value: 9, onEnd: () => calls++), disableAnimations: true));
+      expect(find.bySemanticsLabel('9'), findsOneWidget); // the number already jumped
+      expect(calls, 0);
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('RollingCount calls the latest onEnd of the widget', (tester) async {
+      var old = 0, latest = 0;
+      await tester.pumpWidget(_app(RollingCount(value: 1, onEnd: () => old++)));
+      await tester.pumpWidget(_app(RollingCount(value: 9, onEnd: () => old++)));
+      await tester.pumpWidget(_app(RollingCount(value: 9, onEnd: () => latest++)));
+      await tester.pumpAndSettle();
+      expect((old, latest), (0, 1));
     });
   });
 }

@@ -45,6 +45,12 @@ class _HomeState extends State<_Home> {
             countFromZero: true,
             style: Theme.of(context).textTheme.displaySmall,
           ),
+          TieredCount(
+            value: _posters,
+            suffix: _posters == 1 ? ' poster' : ' posters',
+            countFromZero: true,
+            style: Theme.of(context).textTheme.displaySmall,
+          ),
         ],
       ),
     ),

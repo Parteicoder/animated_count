@@ -38,6 +38,7 @@ class AnimatedDecimal extends StatelessWidget {
     this.duration = const Duration(milliseconds: 600),
     this.curve = Curves.easeOutCubic,
     this.format,
+    this.onEnd,
     super.key,
   });
 
@@ -81,6 +82,15 @@ class AnimatedDecimal extends StatelessWidget {
   /// `toStringAsFixed(fractionDigits)`.
   final String Function(double number)? format;
 
+  /// Called when a count has finished, after the number reached [value].
+  ///
+  /// If [value] changes in the middle of a count, only the last count calls it.
+  /// It is not called when nothing is animated: on the first appearance (unless
+  /// [countFromZero] or [initialValue] is set) or when [value] did not change.
+  /// Without an animation (the system disables them, or [duration] is zero) it
+  /// runs at the end of the frame, so it may call `setState`.
+  final VoidCallback? onEnd;
+
   String _format(double number) => (format ?? (n) => n.toStringAsFixed(fractionDigits))(number);
 
   /// The full text in its final state, e.g. what a screen reader announces.
@@ -97,5 +107,6 @@ class AnimatedDecimal extends StatelessWidget {
     label: text,
     style: style,
     textAlign: textAlign,
+    onEnd: onEnd,
   );
 }

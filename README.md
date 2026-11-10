@@ -43,6 +43,7 @@ A runnable demo lives in [`example/`](example).
 | `duration` | 600 ms | Length of the animation. |
 | `curve` | `Curves.easeOutCubic` | Easing. |
 | `format` | `int.toString` | Formats every shown number, e.g. to add thousands separators. |
+| `onEnd` | `null` | Called when a count has finished (see below). |
 
 ### Thousands separators
 
@@ -52,6 +53,24 @@ AnimatedCount(
   format: (n) => NumberFormat.decimalPattern('en_US').format(n), // package:intl
 )
 ```
+
+## Do something when it is done
+
+`onEnd` is called once the number has reached its new value, for example to show a message
+or play a sound. All three widgets have it.
+
+```dart
+AnimatedCount(
+  value: posterCount,
+  onEnd: () => print('counted to $posterCount'),
+)
+```
+
+If `value` changes while a count is running, only the last count calls `onEnd`. It is not
+called when nothing is animated: on the first appearance (unless `countFromZero` or
+`initialValue` is set), or when `value` did not change. With system animations off the number
+jumps and `onEnd` follows at the end of the frame (`RollingCount`: after its normal duration), so
+it may call `setState`.
 
 ## Decimals and currencies
 
@@ -124,9 +143,45 @@ RollingCount(
 ```
 
 It takes the same parameters as `AnimatedCount` (`prefix`, `suffix`, `style`, `format`,
-`duration`, `curve`, `countFromZero`, `initialValue`); the defaults are 700 ms and
+`duration`, `curve`, `countFromZero`, `initialValue`, `onEnd`); the defaults are 700 ms and
 `Curves.easeOutBack`. Separators from `format` stay plain text, screen readers read the final
 text, and the number jumps if the system disables animations.
+
+## Tiers and badges
+
+`TieredCount` is an `AnimatedCount` with a badge for the tier the number has reached: Bronze at
+10, Silver at 25, Gold at 50, Ruby at 100, Sapphire at 250, Amethyst at 500 and Diamond at 1000
+(`CountTier.medals`). Below the first tier there is no badge.
+
+```dart
+TieredCount(
+  value: posterCount,
+  suffix: ' posters',
+  onTierChange: (from, to) {
+    if (to != null) showCongrats(to.label); // your own celebration
+  },
+)
+```
+
+The badge changes when the count has finished, not while the number is on its way, so counting
+from 40 to 1000 does not show "Diamond" right away. `onTierChange` is called at that moment, and
+only when the tier really changes. Screen readers read the number and the tier in one piece
+(`50 posters, Gold`); during a count the tier is still the old one.
+
+Your own steps replace the medals:
+
+```dart
+TieredCount(
+  value: km,
+  tiers: const [
+    CountTier(at: 100, label: 'Walker', color: Color(0xFF2E7D32)),
+    CountTier(at: 1000, label: 'Hiker', color: Color(0xFF1565C0)),
+  ],
+)
+```
+
+`CountTier.forValue(value, tiers)` gives the tier for a number if you want it without the widget. It takes
+the same parameters as `AnimatedCount` (except `textAlign`), plus `tiers` and `onTierChange`.
 
 ## Testing
 
