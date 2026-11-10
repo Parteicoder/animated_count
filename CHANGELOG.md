@@ -1,6 +1,7 @@
 ## 0.4.0
 
 - Add `onEnd` to `AnimatedCount`, `AnimatedDecimal` and `RollingCount`: a callback that runs when a count or roll has finished. If the value changes in the middle, only the last one calls it. It is not called when nothing is animated.
+- Add `TieredCount` and `CountTier`: an `AnimatedCount` with a badge for the tier the number has reached (`CountTier.medals`: Bronze, Silver, Gold, Ruby, Sapphire, Amethyst, Diamond at 10 to 1000, or your own steps). The badge changes when the count has finished; `onTierChange` reports it. `tierFor` looks up a tier without the widget.
 
 ## 0.3.1
 

@@ -146,6 +146,42 @@ It takes the same parameters as `AnimatedCount` (`prefix`, `suffix`, `style`, `f
 `Curves.easeOutBack`. Separators from `format` stay plain text, screen readers read the final
 text, and the number jumps if the system disables animations.
 
+## Tiers and badges
+
+`TieredCount` is an `AnimatedCount` with a badge for the tier the number has reached: Bronze at
+10, Silver at 25, Gold at 50, Ruby at 100, Sapphire at 250, Amethyst at 500 and Diamond at 1000
+(`CountTier.medals`). Below the first tier there is no badge.
+
+```dart
+TieredCount(
+  value: posterCount,
+  suffix: ' posters',
+  onTierChange: (from, to) {
+    if (to != null) showCongrats(to.label); // your own celebration
+  },
+)
+```
+
+The badge changes when the count has finished, not while the number is on its way, so counting
+from 40 to 1000 does not show "Diamond" right away. `onTierChange` is called at that moment, and
+only when the tier really changes. Screen readers read the number and the tier in one piece
+(`50 posters, Gold`).
+
+Your own steps replace the medals:
+
+```dart
+TieredCount(
+  value: km,
+  tiers: const [
+    CountTier(at: 100, label: 'Walker', color: Color(0xFF2E7D32)),
+    CountTier(at: 1000, label: 'Hiker', color: Color(0xFF1565C0)),
+  ],
+)
+```
+
+`tierFor(value, tiers)` gives the tier for a number if you want it without the widget. It takes
+the same parameters as `AnimatedCount` (except `textAlign`), plus `tiers` and `onTierChange`.
+
 ## Testing
 
 `RollingCount` puts every digit in its own `Text`, so `find.text('142 posters')` finds nothing.
